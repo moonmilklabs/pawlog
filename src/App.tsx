@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-const DAYS_TO_SHOW = 7;
+const MOBILE_DAYS_TO_SHOW = 3;
+const DESKTOP_DAYS_TO_SHOW = 7;
+const MOBILE_BREAKPOINT = 768;
 
 const EMOJI_OPTIONS = [
   "🍖","🥩","🍗","🐟","🥕","💊","🛁","🦷","🪮","🌅","🌆","🏃","🎾","🧸","💉","❤️","💤","🌿","🚗","🏥"
@@ -186,6 +188,7 @@ function EmojiPicker({ value, onChange, t }: EmojiPickerProps) {
 export default function App() {
   const [mode, setMode] = useState<keyof typeof THEMES>("dark");
   const t = THEMES[mode];
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
 
   const [pets, setPets] = useState<Pet[]>(DEFAULT_PETS);
   const [activePetId, setActivePetId] = useState(1);
@@ -204,7 +207,13 @@ export default function App() {
   const [editLabel, setEditLabel] = useState("");
   const [editIcon, setEditIcon] = useState("");
 
-  const dates = getDates(DAYS_TO_SHOW);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const dates = getDates(isMobile ? MOBILE_DAYS_TO_SHOW : DESKTOP_DAYS_TO_SHOW);
   const activePet = pets.find((p) => p.id === activePetId);
 
   const getKey = (petId: number, habitId: string, date: Date): string => `${petId}_${habitId}_${dateKey(date)}`;
@@ -277,7 +286,6 @@ export default function App() {
   };
 
   const progress = todayProgress();
-  const COLS = "130px repeat(7, 1fr) 34px";
 
   // shared input style
   const inputStyle: CSSProperties = {
@@ -288,28 +296,28 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:t.pageBg, position:"relative", overflow:"hidden", fontFamily:"'Nunito', sans-serif", transition:"background 0.3s" }}>
+    <div style={{ minHeight:"100vh", background:t.pageBg, position:"relative", overflowX:"hidden", fontFamily:"'Nunito', sans-serif", transition:"background 0.3s" }}>
       {/* Background gradient */}
       <div style={{ position:"fixed", inset:0, zIndex:0, background:t.pageGrad, transition:"background 0.3s" }} />
       {/* Dot texture */}
       <div style={{ position:"fixed", inset:0, zIndex:1, backgroundImage:`radial-gradient(circle, ${t.dotColor} 1px, transparent 1px)`, backgroundSize:"22px 22px" }} />
 
-      <div style={{ position:"relative", zIndex:2, maxWidth:600, margin:"0 auto", padding:"18px 16px 60px" }}>
+      <div style={{ position:"relative", zIndex:2, maxWidth:560, margin:"0 auto", padding:"18px 14px 60px" }}>
 
-        {/* Top bar */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
-          {/* Pet tabs */}
-          <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+        {/* Pet tabs + controls */}
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+          <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4, flex:1 }}>
             {pets.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setActivePetId(p.id)}
                 style={{
                   display:"flex", alignItems:"center", gap:5,
-                  padding:"6px 13px", borderRadius:999,
+                  padding:"8px 14px", borderRadius:999,
                   border:`2px solid ${activePetId === p.id ? p.color : "transparent"}`,
                   background: activePetId === p.id ? t.tabActiveBg : t.tabBg,
-                  color:t.tabText, cursor:"pointer", fontSize:13, fontWeight:700, transition:"all 0.2s",
+                  color:t.tabText, cursor:"pointer", fontSize:14, fontWeight:800, transition:"all 0.2s",
+                  whiteSpace:"nowrap",
                 }}
               >
                 <span>{p.emoji}</span>
@@ -318,17 +326,16 @@ export default function App() {
             ))}
             <button
               onClick={() => setShowAddPet(true)}
-              style={{ width:34,height:34,borderRadius:"50%",border:`2px dashed ${t.dashedBorder}`,background:"transparent",color:t.tabText,fontSize:19,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}
+              style={{ width:38,height:38,borderRadius:"50%",border:`2px dashed ${t.dashedBorder}`,background:"transparent",color:t.tabText,fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}
             >+</button>
           </div>
 
-          {/* Theme toggle */}
           <button
             onClick={() => setMode(mode === "dark" ? "light" : "dark")}
             style={{
-              padding:"7px 14px", borderRadius:999, border:`1.5px solid ${t.btnGhostBorder}`,
+              padding:"8px 12px", borderRadius:999, border:`1.5px solid ${t.btnGhostBorder}`,
               background:t.btnGhost, color:t.textPrimary, cursor:"pointer",
-              fontSize:18, fontWeight:700, flexShrink:0, marginLeft:10, transition:"all 0.2s",
+              fontSize:17, fontWeight:700, flexShrink:0, transition:"all 0.2s",
             }}
             title={mode === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
@@ -338,47 +345,53 @@ export default function App() {
 
         {/* Pet header */}
         {activePet && (
-          <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:22 }}>
-            <div style={{
-              width:76, height:76, borderRadius:"50%", border:`3px solid ${activePet.color}`,
-              background:t.cardBg, display:"flex", alignItems:"center", justifyContent:"center",
-              flexShrink:0, boxShadow:`0 0 22px ${activePet.color}44`,
-            }}>
-              <span style={{ fontSize:38 }}>{activePet.emoji}</span>
-            </div>
-            <div style={{ flex:1 }}>
-              <h1 style={{ margin:"0 0 8px", fontSize:34, fontWeight:900, color:t.textPrimary, letterSpacing:"-0.5px" }}>{activePet.name}</h1>
-              <div style={{ height:8, borderRadius:999, background:t.progressBg, overflow:"hidden" }}>
-                <div style={{ height:"100%", borderRadius:999, width:`${progress}%`, background:activePet.color, transition:"width 0.5s ease" }} />
+          <div style={{ marginBottom:18 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:10 }}>
+              <div style={{
+                width:88, height:88, borderRadius:"50%", border:`4px solid ${activePet.color}`,
+                background:t.cardBg, display:"flex", alignItems:"center", justifyContent:"center",
+                flexShrink:0, boxShadow:`0 0 22px ${activePet.color}44`,
+              }}>
+                <span style={{ fontSize:44 }}>{activePet.emoji}</span>
               </div>
-              <span style={{ fontSize:11, color:t.textSecondary, marginTop:4, display:"block" }}>Today: {progress}% complete</span>
+              <div style={{ minWidth:0 }}>
+                <h1 style={{ margin:"0 0 2px", fontSize:62, lineHeight:0.95, fontWeight:900, color:t.textPrimary, letterSpacing:"-1.4px" }}>{activePet.name}</h1>
+                <span style={{ fontSize:13, color:t.textSecondary, display:"block", fontWeight:700 }}>Today: {progress}% complete</span>
+              </div>
+            </div>
+            <div style={{
+              height:10, borderRadius:999, background:t.progressBg, overflow:"hidden",
+            }}>
+              <div style={{ height:"100%", borderRadius:999, width:`${progress}%`, background:activePet.color, transition:"width 0.5s ease" }} />
             </div>
           </div>
         )}
 
-        {/* Grid */}
         {activePet && (
           <div style={{ background:t.cardBg, border:`1px solid ${t.cardBorder}`, borderRadius:20, padding:"14px 12px", backdropFilter:"blur(10px)" }}>
-
-            {/* Date header row */}
-            <div style={{ display:"grid", gridTemplateColumns:COLS, gap:5, marginBottom:8 }}>
-              <div />
+            <div style={{ display:"grid", gridTemplateColumns:`repeat(${dates.length}, minmax(0, 1fr))`, gap:10, marginBottom:12 }}>
               {dates.map((d) => (
-                <div key={dateKey(d)} style={{
-                  display:"flex", flexDirection:"column", alignItems:"center",
-                  padding:"4px 2px", borderRadius:8,
-                  background: isToday(d) ? t.todayHighlight : "transparent",
-                }}>
-                  <span style={{ fontSize:10, fontWeight:800, color:t.textPrimary }}>{formatDate(d)}</span>
-                  <span style={{ fontSize:10, color:t.textSecondary }}>{getDayName(d)}</span>
+                <div
+                  key={dateKey(d)}
+                  style={{
+                    display:"flex",
+                    flexDirection:"column",
+                    alignItems:"center",
+                    gap:2,
+                    borderRadius:10,
+                    padding:"8px 4px",
+                    background:isToday(d) ? t.todayHighlight : "transparent",
+                  }}
+                >
+                  <span style={{ fontSize:12, fontWeight:900, color:t.textPrimary }}>{formatDate(d)}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:t.textSecondary }}>{getDayName(d)}</span>
                 </div>
               ))}
-              <div />
             </div>
 
             {/* Empty state */}
             {activePet.habits.length === 0 && (
-              <div style={{ textAlign:"center", color:t.textMuted, padding:"22px 0 14px", fontSize:14 }}>
+              <div style={{ textAlign:"center", color:t.textMuted, padding:"24px 0 18px", fontSize:15 }}>
                 No events yet — add one below 👇
               </div>
             )}
@@ -387,66 +400,74 @@ export default function App() {
             {activePet.habits.map((habit) => {
               const streak = streakCount(habit.id);
               return (
-                <div key={habit.id} style={{ display:"grid", gridTemplateColumns:COLS, gap:5, alignItems:"center", marginBottom:8 }}>
-                  {/* Label */}
-                  <div style={{ display:"flex", alignItems:"center", gap:5, minWidth:0 }}>
-                    <span style={{ fontSize:17, flexShrink:0 }}>{habit.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:t.textPrimary, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{habit.label}</span>
-                    {streak > 0 && <span style={{ fontSize:10, flexShrink:0 }}>🔥{streak}</span>}
+                <div key={habit.id} style={{ background:t.inputBg, border:`1px solid ${t.cardBorder}`, borderRadius:16, padding:"11px 10px", marginBottom:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:10 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:7, minWidth:0 }}>
+                      <span style={{ fontSize:23, flexShrink:0 }}>{habit.icon}</span>
+                      <span style={{ fontSize:26, fontWeight:800, color:t.textPrimary, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textTransform:"lowercase" }}>{habit.label}</span>
+                      {streak > 0 && <span style={{ fontSize:13, fontWeight:800, color:t.textSecondary, flexShrink:0 }}>🔥{streak}</span>}
+                    </div>
+                    <button
+                      onClick={() => openEdit(habit)}
+                      style={{ width:34, height:34, borderRadius:10, border:"none", background:t.editBg, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", color:t.textSecondary, flexShrink:0 }}
+                    >✏️</button>
                   </div>
 
-                  {/* Check cells */}
-                  {dates.map((d) => {
-                    const checked = isChecked(activePetId, habit.id, d);
-                    const key = getKey(activePetId, habit.id, d);
-                    const popping = animating[key];
-                    return (
-                      <button
-                        key={dateKey(d)}
-                        onClick={() => toggle(activePetId, habit.id, d)}
-                        style={{
-                          width:"100%", aspectRatio:"1", borderRadius:"50%", border:"none",
-                          cursor:"pointer", padding:0,
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          background: checked ? t.cellChecked : (isToday(d) ? t.cellToday : t.cellEmpty),
-                          transform: popping ? "scale(1.32)" : "scale(1)",
-                          transition: "transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.18s ease",
-                          boxShadow: checked ? `0 2px 10px ${t.cellChecked}66` : "none",
-                        }}
-                      >
-                        {checked && (
-                          <span style={{
-                            fontSize:15, fontWeight:900, lineHeight:1,
-                            color: t.checkColor,
-                            textShadow: t.checkShadow,
-                            // scale the ✓ up when popping
-                            transform: popping ? "scale(1.2)" : "scale(1)",
-                            transition:"transform 0.2s",
-                          }}>✓</span>
-                        )}
-                      </button>
-                    );
-                  })}
-
-                  {/* Edit btn */}
-                  <button
-                    onClick={() => openEdit(habit)}
-                    style={{ width:30, height:30, borderRadius:8, border:"none", background:t.editBg, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", color:t.textSecondary }}
-                  >✏️</button>
+                  <div style={{ display:"grid", gridTemplateColumns:`repeat(${dates.length}, minmax(0, 1fr))`, gap:12 }}>
+                    {dates.map((d) => {
+                      const checked = isChecked(activePetId, habit.id, d);
+                      const key = getKey(activePetId, habit.id, d);
+                      const popping = animating[key];
+                      return (
+                        <button
+                          key={`${habit.id}_${dateKey(d)}`}
+                          onClick={() => toggle(activePetId, habit.id, d)}
+                          style={{
+                            width:"100%",
+                            aspectRatio:"1",
+                            borderRadius:"50%",
+                            border:"none",
+                            cursor:"pointer",
+                            padding:0,
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"center",
+                            background: checked ? t.cellChecked : (isToday(d) ? t.cellToday : t.cellEmpty),
+                            transform: popping ? "scale(1.16)" : "scale(1)",
+                            transition: "transform 0.2s cubic-bezier(.34,1.56,.64,1), background 0.18s ease",
+                            boxShadow: checked ? `0 2px 10px ${t.cellChecked}66` : "none",
+                          }}
+                        >
+                          {checked && (
+                            <span style={{
+                              fontSize:46,
+                              fontWeight:900,
+                              lineHeight:1,
+                              color: t.checkColor,
+                              textShadow: t.checkShadow,
+                              transform: popping ? "scale(1.1)" : "scale(1)",
+                              transition:"transform 0.2s",
+                            }}>✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
 
             {/* Add event */}
-            <div style={{ marginTop:14, display:"flex", justifyContent:"center" }}>
+            <div style={{ marginTop:16, display:"flex", justifyContent:"center" }}>
               <button
                 onClick={() => setShowAddEvent(true)}
                 style={{
                   display:"flex", alignItems:"center", gap:6,
-                  padding:"9px 22px", borderRadius:999,
+                  padding:"11px 22px", borderRadius:999,
                   border:`2px dashed ${t.dashedBorder}`,
                   background:"transparent", color:t.textSecondary,
-                  fontWeight:700, fontSize:13, cursor:"pointer", transition:"all 0.2s",
+                  fontWeight:800, fontSize:14, cursor:"pointer", transition:"all 0.2s",
+                  width:"100%", justifyContent:"center",
                 }}
               >＋ Add Event</button>
             </div>
