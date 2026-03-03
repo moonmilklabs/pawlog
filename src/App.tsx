@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const DAYS_TO_SHOW = 7;
 
@@ -6,7 +7,21 @@ const EMOJI_OPTIONS = [
   "🍖","🥩","🍗","🐟","🥕","💊","🛁","🦷","🪮","🌅","🌆","🏃","🎾","🧸","💉","❤️","💤","🌿","🚗","🏥"
 ];
 
-const DEFAULT_PETS = [
+type Habit = {
+  id: string;
+  label: string;
+  icon: string;
+};
+
+type Pet = {
+  id: number;
+  name: string;
+  emoji: string;
+  color: string;
+  habits: Habit[];
+};
+
+const DEFAULT_PETS: Pet[] = [
   {
     id: 1,
     name: "Zoe",
@@ -21,6 +36,8 @@ const DEFAULT_PETS = [
     ],
   },
 ];
+
+type Theme = (typeof THEMES)[keyof typeof THEMES];
 
 // ── Themes ──────────────────────────────────────────────────────
 const THEMES = {
@@ -97,8 +114,8 @@ const THEMES = {
   },
 };
 
-function getDates(count) {
-  const dates = [];
+function getDates(count: number): Date[] {
+  const dates: Date[] = [];
   const today = new Date();
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(today);
@@ -107,13 +124,20 @@ function getDates(count) {
   }
   return dates;
 }
-function formatDate(d) { return `${d.getMonth() + 1}/${d.getDate()}`; }
-function getDayName(d) { return d.toLocaleDateString("en-US", { weekday: "short" }); }
-function dateKey(d) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
-function isToday(d) { return dateKey(d) === dateKey(new Date()); }
+function formatDate(d: Date): string { return `${d.getMonth() + 1}/${d.getDate()}`; }
+function getDayName(d: Date): string { return d.toLocaleDateString("en-US", { weekday: "short" }); }
+function dateKey(d: Date): string { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+function isToday(d: Date): boolean { return dateKey(d) === dateKey(new Date()); }
 
 // ── Modal ────────────────────────────────────────────────────────
-function Modal({ title, onClose, t, children }) {
+type ModalProps = {
+  title: string;
+  onClose: () => void;
+  t: Theme;
+  children: ReactNode;
+};
+
+function Modal({ title, onClose, t, children }: ModalProps) {
   return (
     <div
       style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20 }}
@@ -131,7 +155,13 @@ function Modal({ title, onClose, t, children }) {
 }
 
 // ── Emoji picker ─────────────────────────────────────────────────
-function EmojiPicker({ value, onChange, t }) {
+type EmojiPickerProps = {
+  value: string;
+  onChange: (emoji: string) => void;
+  t: Theme;
+};
+
+function EmojiPicker({ value, onChange, t }: EmojiPickerProps) {
   return (
     <div style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:16 }}>
       {EMOJI_OPTIONS.map((e) => (
@@ -154,13 +184,13 @@ function EmojiPicker({ value, onChange, t }) {
 
 // ── Main ─────────────────────────────────────────────────────────
 export default function App() {
-  const [mode, setMode] = useState("dark");
+  const [mode, setMode] = useState<keyof typeof THEMES>("dark");
   const t = THEMES[mode];
 
-  const [pets, setPets] = useState(DEFAULT_PETS);
+  const [pets, setPets] = useState<Pet[]>(DEFAULT_PETS);
   const [activePetId, setActivePetId] = useState(1);
-  const [checks, setChecks] = useState({});
-  const [animating, setAnimating] = useState({});
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [animating, setAnimating] = useState<Record<string, boolean>>({});
 
   const [showAddPet, setShowAddPet] = useState(false);
   const [newPetName, setNewPetName] = useState("");
@@ -170,25 +200,25 @@ export default function App() {
   const [newEventLabel, setNewEventLabel] = useState("");
   const [newEventIcon, setNewEventIcon] = useState("🍖");
 
-  const [editingHabit, setEditingHabit] = useState(null);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editIcon, setEditIcon] = useState("");
 
   const dates = getDates(DAYS_TO_SHOW);
   const activePet = pets.find((p) => p.id === activePetId);
 
-  const getKey = (petId, habitId, date) => `${petId}_${habitId}_${dateKey(date)}`;
+  const getKey = (petId: number, habitId: string, date: Date): string => `${petId}_${habitId}_${dateKey(date)}`;
 
-  const toggle = (petId, habitId, date) => {
+  const toggle = (petId: number, habitId: string, date: Date) => {
     const key = getKey(petId, habitId, date);
     setAnimating((a) => ({ ...a, [key]: true }));
     setTimeout(() => setAnimating((a) => ({ ...a, [key]: false })), 300);
     setChecks((c) => ({ ...c, [key]: !c[key] }));
   };
 
-  const isChecked = (petId, habitId, date) => !!checks[getKey(petId, habitId, date)];
+  const isChecked = (petId: number, habitId: string, date: Date): boolean => !!checks[getKey(petId, habitId, date)];
 
-  const streakCount = (habitId) => {
+  const streakCount = (habitId: string): number => {
     let streak = 0;
     for (let i = dates.length - 1; i >= 0; i--) {
       if (isChecked(activePetId, habitId, dates[i])) streak++;
@@ -227,10 +257,10 @@ export default function App() {
     setNewEventLabel(""); setNewEventIcon("🍖"); setShowAddEvent(false);
   };
 
-  const openEdit = (habit) => { setEditingHabit(habit); setEditLabel(habit.label); setEditIcon(habit.icon); };
+  const openEdit = (habit: Habit) => { setEditingHabit(habit); setEditLabel(habit.label); setEditIcon(habit.icon); };
 
   const saveEdit = () => {
-    if (!editLabel.trim()) return;
+    if (!editingHabit || !editLabel.trim()) return;
     setPets((prev) => prev.map((p) =>
       p.id === activePetId
         ? { ...p, habits: p.habits.map((h) => h.id === editingHabit.id ? { ...h, label:editLabel.trim(), icon:editIcon } : h) }
@@ -239,7 +269,7 @@ export default function App() {
     setEditingHabit(null);
   };
 
-  const deleteHabit = (habitId) => {
+  const deleteHabit = (habitId: string) => {
     setPets((prev) => prev.map((p) =>
       p.id === activePetId ? { ...p, habits: p.habits.filter((h) => h.id !== habitId) } : p
     ));
@@ -250,11 +280,11 @@ export default function App() {
   const COLS = "130px repeat(7, 1fr) 34px";
 
   // shared input style
-  const inputStyle = {
+  const inputStyle: CSSProperties = {
     width:"100%", padding:"11px 14px", borderRadius:12,
     border:`1px solid ${t.inputBorder}`, background:t.inputBg,
     color:t.inputText, fontSize:15, fontWeight:700, outline:"none",
-    boxSizing:"border-box", marginBottom:14,
+    boxSizing: "border-box", marginBottom:14,
   };
 
   return (
@@ -460,7 +490,7 @@ export default function App() {
           <p style={{ color:t.textSecondary, margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Event name</p>
           <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} onKeyDown={(e) => e.key==="Enter" && saveEdit()} style={inputStyle} autoFocus />
           <div style={{ display:"flex", gap:10 }}>
-            <button onClick={() => deleteHabit(editingHabit.id)} style={{ flex:1, padding:"11px", borderRadius:12, border:"none", background:t.btnDelete, color: mode==="dark" ? "#fca5a5" : "#dc2626", fontWeight:800, cursor:"pointer", fontSize:14 }}>🗑 Delete</button>
+            <button onClick={() => editingHabit && deleteHabit(editingHabit.id)} style={{ flex:1, padding:"11px", borderRadius:12, border:"none", background:t.btnDelete, color: mode==="dark" ? "#fca5a5" : "#dc2626", fontWeight:800, cursor:"pointer", fontSize:14 }}>🗑 Delete</button>
             <button onClick={saveEdit} style={{ flex:1, padding:"11px", borderRadius:12, border:"none", background:t.btnConfirm, color:"white", fontWeight:800, cursor:"pointer", fontSize:14 }}>Save</button>
           </div>
         </Modal>
